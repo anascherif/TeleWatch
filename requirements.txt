@@ -1,0 +1,24 @@
+# Teleinfo Monitor - Requirements
+# Install with: pip install -r requirements.txt
+
+# No external dependencies required!
+# Uses only Python standard library modules:
+# - socket (built-in)
+# - sqlite3 (built-in)
+# - threading (built-in)
+# - tkinter (built-in with Python)
+# - json (built-in)
+# - datetime (built-in)
+# - pathlib (built-in)
+# - csv (built-in)
+# - signal (built-in)
+# - random (built-in)
+# - platform (built-in)
+# - time (built-in)
+# - subprocess (built-in, for Windows metrics)
+
+# Optional: for enhanced system metrics (uncomment if desired)
+# psutil>=5.9.0
+
+# Optional: for enhanced GUI (uncomment if desired)
+# customtkinter>=5.0.0
