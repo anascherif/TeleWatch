@@ -25,8 +25,9 @@ def print_menu():
 |  [2] Demarrer le CLIENT (envoi des metriques)                   |
 |  [3] Ouvrir le TABLEAU DE BORD (interface graphique)           |
 |  [4] Generer les RAPPORTS                                     |
-|  [5] Initialiser la BASE DE DONNEES                            |
-|  [6] Modifier la CONFIGURATION                                 |
+|  [5] STRESS TEST (envoi massif)                                |
+|  [6] Initialiser la BASE DE DONNEES                            |
+|  [7] Modifier la CONFIGURATION                                 |
 |  [0] Quitter                                                  |
 +=================================================================+
 """)
@@ -49,6 +50,10 @@ def run_gui():
 def run_reports():
     from reports import main as reports_main
     reports_main()
+
+def run_stress():
+    from stress_test import main as stress_main
+    stress_main()
 
 def init_database():
     from database import Database
@@ -80,16 +85,23 @@ def main():
     print_banner()
     
     parser = argparse.ArgumentParser(description="Teleinfo Monitoring System")
-    parser.add_argument('mode', nargs='?', choices=['server', 'client', 'gui', 'reports', 'init'],
+    parser.add_argument('mode', nargs='?', choices=['server', 'client', 'gui', 'reports', 'stress', 'init'],
                        help='Mode de fonctionnement')
     parser.add_argument('--config', action='store_true', help='Afficher la configuration')
     
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
     
     if args.config:
         from config import config
         import json
         print(json.dumps(config._config, indent=2))
+        return
+    
+    if args.mode == 'stress':
+        from stress_test import main as stress_main
+        import sys
+        sys.argv = ['stress_test.py'] + unknown
+        stress_main()
         return
     
     if args.mode:
@@ -98,6 +110,7 @@ def main():
             'client': run_client,
             'gui': run_gui,
             'reports': run_reports,
+            'stress': run_stress,
             'init': init_database
         }
         modes[args.mode]()
@@ -116,8 +129,10 @@ def main():
         elif choice == '4':
             run_reports()
         elif choice == '5':
-            init_database()
+            run_stress()
         elif choice == '6':
+            init_database()
+        elif choice == '7':
             edit_config()
         elif choice == '0':
             print("\nAu revoir!\n")

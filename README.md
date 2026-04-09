@@ -15,8 +15,9 @@
 7. [Format des Rapports](#-format-des-rapports)
 8. [Configuration](#-configuration)
 9. [Guide d'Utilisation](#-guide-dutilisation)
-10. [Exemples de Sortie](#-exemples-de-sortie)
-11. [FAQ](#-faq)
+10. [Stress Test](#-stress-test)
+11. [Exemples de Sortie](#-exemples-de-sortie)
+12. [FAQ](#-faq)
 
 ---
 
@@ -344,6 +345,7 @@ teleinfo/
 ├── database.py      # Module SQLite
 ├── reports.py       # Générateur de rapports
 ├── gui.py           # Interface graphique Tkinter
+├── stress_test.py   # Module de stress test (simulation d'attaque)
 │
 ├── data/            # Données (créé automatiquement)
 │   └── teleinfo.db  # Base de données SQLite
@@ -373,6 +375,7 @@ Fonctions :
   - run_client() : Lance le client
   - run_gui() : Lance l'interface graphique
   - run_reports() : Lance le générateur de rapports
+  - run_stress() : Lance le stress test
   - init_database() : Initialise la base de données
   - edit_config() : Affiche la configuration
 ```
@@ -448,6 +451,34 @@ Méthodes principales :
   - generate_alert_report() : Détection d'anomalies
   - generate_html_report() : Rapport HTML stylisé
   - save_report_json/csv/html() : Sauvegarde
+```
+
+#### `stress_test.py` - Module de Stress Test
+
+```
+Rôle : Simule une chargemassive pour tester la robustesse du serveur
+Classes :
+  - StressTest : Gestionnaire de stress test
+
+Modes disponibles :
+  - burst : Envoie un nombre fixe de rapports
+  - flood : Envoie le maximum possible (sans délai)
+  - continuous : Envoie pendant une durée définie
+  - multi : Lance plusieurs threads simultanés
+
+Fonctions principales :
+  - run_burst() : Mode burst avec compteur
+  - run_flood() : Mode flood sans délai
+  - run_continuous() : Mode continu avec stats temps réel
+  - run_multi_threaded() : Mode multi-threads
+  - print_stats() : Affiche les statistiques finales
+
+Métriques mesurées :
+  - Nombre de rapports envoyés
+  - Taux de réussite (%)
+  - Temps de réponse moyen/min/max (ms)
+  - Débit moyen (msg/s)
+  - Durée totale du test
 ```
 
 ---
@@ -570,10 +601,265 @@ Le fichier `config.json` (créé automatiquement) contient :
 4. Observer les métriques en temps réel
 5. Cliquer sur "Générer Rapport" pour créer un rapport HTML
 
+### Scénario 4 : Stress Test
+
+1. **Terminal 1** : `python main.py server`
+2. Attendre que le serveur soit prêt
+3. **Terminal 2** : `python main.py stress --mode burst --count 5000`
+4. Observer les statistiques de performance
+5. Analyser les résultats (temps de réponse, débit)
+
 ### Arrêt Propre
 
 - **Client** : Ctrl+C (envoie automatiquement BYE)
 - **Serveur** : Ctrl+C (ferme toutes les connexions)
+
+---
+
+## 💥 Stress Test (Simulation d'Attaque)
+
+Cette section permet de tester la robustesse du serveur en envoyant un grand volume de requêtes.
+
+### Présentation
+
+Le module `stress_test.py` simule différents scénarios de charge pour évaluer les performances du serveur :
+
+| Mode | Description | Cas d'usage |
+|------|-------------|-------------|
+| **burst** | Envoie un nombre fixe de rapports | Test de charge ponctuelle |
+| **flood** | Envoie le maximum possible | Test de résistance maximale |
+| **continuous** | Envoie pendant une durée définie | Test de stabilité |
+| **multi** | Lance plusieurs threads simultanés | Test de concurrences multiples |
+
+### Lancement
+
+#### Via le Menu
+
+```bash
+python main.py
+# Choisir [5] STRESS TEST
+```
+
+#### Via Ligne de Commande
+
+```bash
+python main.py stress [OPTIONS]
+```
+
+### Options Disponibles
+
+| Option | Description | Défaut |
+|--------|-------------|--------|
+| `--mode` | Mode de test (burst/continuous/flood/multi) | burst |
+| `--count` | Nombre de rapports à envoyer (mode burst) | 1000 |
+| `--duration` | Durée du test en secondes | 30 |
+| `--threads` | Nombre de threads (mode multi) | 5 |
+| `--delay` | Délai entre chaque envoi (secondes) | 0 |
+| `--agent` | ID personnalisé pour l'agent | auto |
+
+### Modes de Test Détaillés
+
+#### 1. Mode BURST - Test de Charge Ponctuelle
+
+Envoie un nombre fixe de rapports le plus rapidement possible.
+
+```bash
+python main.py stress --mode burst --count 5000
+```
+
+**Exemple de sortie :**
+
+```
+==================================================
+  STRESS TEST - MODE BURST
+==================================================
+  Nombre de rapports: 5000
+  Cible: 127.0.0.1:65432
+==================================================
+
+Progression: 100/5000 (980 msg/s)
+Progression: 200/5000 (975 msg/s)
+Progression: 300/5000 (982 msg/s)
+...
+
+==================================================
+  RAPPORT DE STRESS TEST
+==================================================
+  Agent: stress_1234
+  Duree: 5.12 secondes
+  ---------------------------
+  Envoye: 5000
+  Echoue: 0
+  Taux de reussite: 100.0%
+  ---------------------------
+  Vitesse moyenne: 976.5 msg/s
+  ---------------------------
+  Temps de reponse moyen: 1.02ms
+  Temps de reponse min: 0.45ms
+  Temps de reponse max: 15.32ms
+==================================================
+```
+
+#### 2. Mode FLOOD - Test de Résistance Maximale
+
+Envoie le maximum de requêtes possibles sans délai.
+
+```bash
+python main.py stress --mode flood --duration 60
+```
+
+**Objectif :** Trouver la limite de traitement du serveur.
+
+```
+==================================================
+  FLOOD ATTACK SIMULATION
+==================================================
+  Mode: ENVOI MASSIF SANS DELAI
+  Duree: 60 secondes
+  Cible: 127.0.0.1:65432
+==================================================
+
+[19:40:00] Flood: 500 @ 950 msg/s
+[19:40:05] Flood: 1200 @ 980 msg/s
+[19:40:10] Flood: 2100 @ 975 msg/s
+...
+[19:41:00] Flood: 58000 @ 967 msg/s
+
+==================================================
+  RAPPORT DE STRESS TEST
+==================================================
+  Envoye: 58000
+  Vitesse moyenne: 966.7 msg/s
+  Taux de reussite: 99.8%
+==================================================
+```
+
+#### 3. Mode CONTINUOUS - Test de Stabilité
+
+Envoie des métriques pendant une durée définie avec stats en temps réel.
+
+```bash
+python main.py stress --mode continuous --duration 120
+```
+
+**Objectif :** Vérifier que le serveur reste stable sur une longue période.
+
+#### 4. Mode MULTI - Test de Concurrence
+
+Lance plusieurs threads simultanés pour simuler plusieurs clients.
+
+```bash
+python main.py stress --mode multi --threads 10 --duration 60
+```
+
+**Objectif :** Tester la gestion de multiples connexions simultanées.
+
+```
+==================================================
+  STRESS TEST - MULTI-THREADED
+==================================================
+  Threads: 10
+  Duree: 60 secondes
+==================================================
+
+[Thread-0] Termine: 5800 envois
+[Thread-1] Termine: 5750 envois
+[Thread-2] Termine: 5820 envois
+...
+[Thread-9] Termine: 5790 envois
+
+Total: ~58000 rapports en 60 secondes
+```
+
+### Commandes Rapides
+
+```bash
+# Test rapide (1000 rapports)
+python main.py stress
+
+# Test moyen (10000 rapports)
+python main.py stress --mode burst --count 10000
+
+# Flood 30 secondes
+python main.py stress --mode flood --duration 30
+
+# 5 clients simultanés pendant 1 minute
+python main.py stress --mode multi --threads 5 --duration 60
+
+# Test avec délai entre chaque envoi
+python main.py stress --mode burst --count 500 --delay 0.01
+```
+
+### Diagramme de Flux - Stress Test
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    STRESS TEST WORKFLOW                      │
+└─────────────────────────────────────────────────────────────┘
+
+                    ┌──────────────────┐
+                    │  Choix du MODE   │
+                    │ burst/continuous  │
+                    │ flood/multi      │
+                    └────────┬─────────┘
+                             │
+          ┌──────────────────┼──────────────────┐
+          │                  │                  │
+          ▼                  ▼                  ▼
+    ┌──────────┐      ┌──────────┐      ┌──────────┐
+    │   Burst  │      │  Flood   │      │  Multi   │
+    │  N msgs  │      │   Max    │      │ N threads│
+    └────┬─────┘      └────┬─────┘      └────┬─────┘
+         │                 │                 │
+         └─────────────────┼─────────────────┘
+                           │
+                           ▼
+                   ┌───────────────┐
+                   │ Connexion TCP  │
+                   │ au Serveur    │
+                   └───────┬───────┘
+                           │
+                           ▼
+                   ┌───────────────┐
+                   │ HELLO + REPORT│
+                   │ (boucle)     │
+                   └───────┬───────┘
+                           │
+                           ▼
+                   ┌───────────────┐
+                   │  Mesure des   │
+                   │  Performances │
+                   │ - Temps reponse│
+                   │ - Debit       │
+                   │ - Taux erreur │
+                   └───────┬───────┘
+                           │
+                           ▼
+                   ┌───────────────┐
+                   │   BYE + Stats │
+                   │    Finales    │
+                   └───────────────┘
+```
+
+### Interprétation des Résultats
+
+| Métrique | Bon | Moyen | Mauvais |
+|----------|-----|-------|---------|
+| Taux de réussite | > 99% | 95-99% | < 95% |
+| Temps de réponse moyen | < 5ms | 5-20ms | > 20ms |
+| Débit (msg/s) | > 500 | 100-500 | < 100 |
+
+### Précautions
+
+⚠️ **Attention** : Le mode flood envoie un très grand volume de données. Utilisez-le uniquement sur :
+
+- Votre propre serveur de test
+- Un environnement isolé
+- Avec l'accord du propriétaire du système
+
+---
+
+
 
 ---
 
@@ -612,6 +898,38 @@ Le fichier `config.json` (créé automatiquement) contient :
   Echecs: 0
   Taux de succes: 100.0%
 ========================================
+```
+
+### Sortie Stress Test
+
+```
+==================================================
+  STRESS TEST - MODE BURST
+==================================================
+  Nombre de rapports: 1000
+  Cible: 127.0.0.1:65432
+==================================================
+
+Progression: 100/1000 (950 msg/s)
+Progression: 200/1000 (975 msg/s)
+Progression: 300/1000 (980 msg/s)
+
+==================================================
+  RAPPORT DE STRESS TEST
+==================================================
+  Agent: stress_5678
+  Duree: 1.03 secondes
+  ---------------------------
+  Envoye: 1000
+  Echoue: 0
+  Taux de reussite: 100.0%
+  ---------------------------
+  Vitesse moyenne: 970.9 msg/s
+  ---------------------------
+  Temps de reponse moyen: 1.03ms
+  Temps de reponse min: 0.42ms
+  Temps de reponse max: 8.75ms
+==================================================
 ```
 
 ### Rapports Générés
@@ -717,6 +1035,7 @@ Ce projet a été développé dans le cadre d'un **TP de Téléinformatique** po
 5. **Traitement Multithread** : Gestion de multiples connexions simultanées
 6. **Génération de Rapports** : Export de données dans multiples formats
 7. **Interface Graphique** : GUI basique avec Tkinter
+8. **Tests de Performance** : Simulation d'attaque et stress testing
 
 ---
 
